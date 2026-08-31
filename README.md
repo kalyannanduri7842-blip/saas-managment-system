@@ -1,44 +1,62 @@
 # SaaS Management Platform
 
-A clean, fully functional SaaS Management Dashboard built with React, Vite, Tailwind CSS, and LocalStorage.
+A professional SaaS Management Dashboard for tracking applications, subscriptions, users, expenses, and renewals. Built with React, Vite, Tailwind CSS, and LocalStorage persistence.
 
 ## Features
 
-- **Dashboard** – Stats cards, charts (monthly spending, app status, category distribution), upcoming renewals
-- **Applications** – Full CRUD, search, filter by category/status, detail pages
-- **Subscriptions** – Manage plans, billing cycles, seats, renewals
-- **Users** – User management with role/status filters and application assignment
-- **Expenses** – Track SaaS spending with payment status
+- **Dashboard** – Live stats, spending charts, status distribution, upcoming renewals
+- **Applications** – Full CRUD, search/filter, detail views
+- **Subscriptions** – Plans, billing cycles, seats, renewal tracking
+- **Users** – Role-based directory with application assignment
+- **Expenses** – Payment tracking and spend totals
 - **Reports** – Spending, subscription, and usage reports with CSV export
-- **Notifications** – Renewal reminders and activity alerts
-- **Settings** – Company, profile, theme (dark/light), notification preferences
+- **Audit Log** – Compliance-oriented change history
+- **Activity Feed** – Portfolio activity timeline
+- **Integrations** – Third-party connection status
+- **Billing History** – Invoice and payment records
+- **Notifications** – Renewal and payment alerts
+- **Settings** – Company, profile, dark/light theme, notification preferences
 - **Dark mode** – Persisted via LocalStorage
-- **Responsive** – Works on desktop, tablet, and mobile
+- **Responsive** – Desktop, tablet, and mobile layouts
 
 ## Tech Stack
 
-- React 18 + Vite
-- Tailwind CSS
-- React Router v6
+- React 18 + Vite 5
+- Tailwind CSS 3
+- React Router 6
 - Recharts
-- Lucide React icons
+- Lucide React
 - date-fns
-- LocalStorage for persistence
+- Vitest (unit tests)
+- LocalStorage persistence
 
-## Getting Started
+## Install
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
 ```
 
-Open the URL shown in the terminal (usually http://localhost:5173).
+## Run (development)
+
+```bash
+npm run dev
+```
+
+Open the URL printed by Vite (typically http://localhost:5173).
+
+## Build
+
+```bash
+npm run build
+npm run preview
+```
+
+## Test
+
+```bash
+npm test
+npm run test:coverage
+```
 
 ## Project Structure
 
@@ -46,30 +64,32 @@ Open the URL shown in the terminal (usually http://localhost:5173).
 saas-management-platform/
 ├── public/
 ├── src/
-│   ├── components/     # Reusable UI components
+│   ├── components/     # UI components (Sidebar, Header, Modal, etc.)
 │   ├── pages/          # Route pages
-│   ├── layouts/        # Main layout with sidebar
-│   ├── data/           # Sample data
-│   ├── context/        # App context (state + CRUD)
-│   ├── services/       # LocalStorage service
-│   ├── utils/          # Calculations, CSV export
+│   ├── layouts/        # Main layout shell
+│   ├── context/        # React context + CRUD operations
+│   ├── services/       # Storage and domain services
+│   ├── data/           # Sample and extended datasets
+│   ├── validators/     # Form and entity validation
+│   ├── constants/      # Categories, statuses, navigation
+│   ├── lib/            # Utility libraries (filters, costs, reports, etc.)
+│   ├── features/       # Feature-specific business logic
+│   ├── hooks/          # Custom React hooks
+│   ├── utils/          # Dashboard calculations and CSV export
 │   ├── App.jsx
 │   ├── main.jsx
 │   └── index.css
+├── tests/              # Vitest unit tests
 ├── package.json
 ├── vite.config.js
-├── tailwind.config.js
+├── vitest.config.js
 └── README.md
 ```
 
-## Sample Data
+## Data Persistence
 
-On first load the app seeds LocalStorage with:
+On first load the app seeds LocalStorage with realistic sample data (applications, users, subscriptions, expenses, notifications). All CRUD operations persist across page refreshes.
 
-- 10 SaaS applications (Slack, Microsoft 365, GitHub, Jira, Notion, Zoom, etc.)
-- 12 users across departments
-- 10 subscriptions
-- 18 expenses
-- 9 notifications
+## License
 
-Data persists across page refreshes.
+Proprietary. All rights reserved.
