@@ -1,21 +1,26 @@
-const styles = {
-  Active: 'badge-green',
-  Trial: 'badge-blue',
-  Expired: 'badge-red',
-  Cancelled: 'badge-gray',
-  Expiring: 'badge-yellow',
-  Inactive: 'badge-gray',
-  Paid: 'badge-green',
-  Pending: 'badge-yellow',
-  Failed: 'badge-red',
-  'Due Soon': 'badge-yellow',
-  Upcoming: 'badge-blue',
-  Admin: 'badge-purple',
-  Manager: 'badge-blue',
-  Employee: 'badge-gray',
+﻿const styles = {
+  Active: 'badge-emerald',
+  Trial: 'badge-teal',
+  Expired: 'badge-rose',
+  Cancelled: 'badge-slate',
+  Expiring: 'badge-amber',
+  Inactive: 'badge-slate',
+  Paid: 'badge-emerald',
+  Pending: 'badge-amber',
+  Failed: 'badge-rose',
+  'Due Soon': 'badge-amber',
+  Upcoming: 'badge-teal',
+  Admin: 'badge-emerald',
+  'Finance Lead': 'badge-amber',
+  'Sales Director': 'badge-teal',
+  'DevOps Lead': 'badge-purple',
+  'Customer Success': 'badge-teal',
+  'Product Lead': 'badge-amber',
+  Manager: 'badge-teal',
+  Employee: 'badge-slate',
 };
 
 export default function Badge({ status, children }) {
-  const cls = styles[status] || 'badge-gray';
+  const cls = styles[status] || 'badge-slate';
   return <span className={cls}>{children || status}</span>;
 }

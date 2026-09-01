@@ -183,7 +183,7 @@ export default function Reports() {
             <p className="text-sm text-gray-500 mt-1">Cancelled</p>
           </div>
           <div className="card text-center">
-            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{subscriptionReport.total}</p>
+            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{subscriptionReport.total}</p>
             <p className="text-sm text-gray-500 mt-1">Total Subscriptions</p>
           </div>
         </div>
