@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  aleans-erp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aleans-enterprise-erp
+    ports:
+      - "5176:5176"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
