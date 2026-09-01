@@ -5,6 +5,7 @@ import { useAleans, getInitials } from '../../context/AleansContext';
 export default function HRPage() {
   const { employees, register, currentUser } = useAleans();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // New Employee Form State
   const [name, setName] = useState('');
@@ -49,9 +50,21 @@ export default function HRPage() {
 
       {/* Directory Table */}
       <div className="card p-5">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900">Registered Corporate Staff</h3>
-          <span className="text-xs text-slate-400">{employees.length} Members</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-900">Registered Corporate Staff</h3>
+            <span className="text-xs text-slate-400">({employees.length} Members)</span>
+          </div>
+          <div className="relative flex items-center w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search staff, email, role..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -67,7 +80,7 @@ export default function HRPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {employees.map((emp) => (
+              {employees.filter(e => searchTerm.trim() === '' || e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.email.toLowerCase().includes(searchTerm.toLowerCase()) || e.department.toLowerCase().includes(searchTerm.toLowerCase()) || e.role.toLowerCase().includes(searchTerm.toLowerCase())).map((emp) => (
                 <tr key={emp.id} className="hover:bg-slate-50">
                   <td className="py-3 px-4 font-mono font-bold text-emerald-700">{emp.id}</td>
                   <td className="py-3 px-4">

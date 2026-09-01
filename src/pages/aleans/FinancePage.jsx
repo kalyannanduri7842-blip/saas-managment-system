@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Landmark, Receipt, ArrowUpRight, Plus, Download, FileText, X, Trash2 } from 'lucide-react';
+import { Landmark, Receipt, ArrowUpRight, Plus, Download, FileText, X, Trash2, Search } from 'lucide-react';
 import { useAleans } from '../../context/AleansContext';
 
 export default function FinancePage() {
   const { finance, addInvoice, deleteInvoice, isManagerOrAdmin } = useAleans();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [client, setClient] = useState('');
   const [amount, setAmount] = useState('');
@@ -66,9 +67,21 @@ export default function FinancePage() {
 
       {/* Invoices Table */}
       <div className="card p-5">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900">GST Tax Invoices</h3>
-          <span className="text-xs text-slate-400">{finance.invoices.length} Records</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-900">GST Tax Invoices</h3>
+            <span className="text-xs text-slate-400">({finance.invoices.length} Records)</span>
+          </div>
+          <div className="relative flex items-center w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search client, invoice #..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
+            />
+          </div>
         </div>
 
         {finance.invoices.length === 0 ? (
@@ -91,7 +104,7 @@ export default function FinancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {finance.invoices.map((inv) => (
+                {finance.invoices.filter(i => searchTerm.trim() === '' || i.client.toLowerCase().includes(searchTerm.toLowerCase()) || i.id.toLowerCase().includes(searchTerm.toLowerCase())).map((inv) => (
                   <tr key={inv.id} className="hover:bg-slate-50">
                     <td className="py-3 px-4 font-mono font-bold text-emerald-700">{inv.id}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">{inv.client}</td>

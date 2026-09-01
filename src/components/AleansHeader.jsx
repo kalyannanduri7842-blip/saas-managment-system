@@ -14,6 +14,8 @@ import { useAleans } from '../context/AleansContext';
 
 export default function AleansHeader({ title }) {
   const {
+    searchOpen,
+    setSearchOpen,
     currentUser,
     organization,
     notifications,
@@ -107,6 +109,19 @@ export default function AleansHeader({ title }) {
 
       {/* Right: Actions & User Details */}
       <div className="flex items-center gap-3">
+        {/* Quick Search Action */}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600 transition"
+          title="Search All Dashboards (Ctrl+K)"
+        >
+          <Search className="w-4 h-4 text-slate-400" />
+          <span className="hidden md:inline text-slate-500">Quick Search...</span>
+          <kbd className="hidden lg:inline px-1.5 py-0.5 rounded bg-white text-[10px] font-mono text-slate-500 border border-slate-200 shadow-sm">
+            ⌘K
+          </kbd>
+        </button>
+
         {/* + Ingest Data Action */}
         <button
           onClick={() => setQuickAddOpen(true)}

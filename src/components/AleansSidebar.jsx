@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,22 +14,14 @@ import {
   ShoppingCart,
   Target,
   Cog,
-  CheckCircle2,
   Headphones,
   FolderArchive,
-  Server,
-  GraduationCap,
-  PlaneTakeoff,
   BarChart3,
-  CheckSquare,
-  LifeBuoy,
-  Puzzle,
-  History,
   ChevronLeft,
   ChevronRight,
   Search,
   LogOut,
-  Settings,
+  X
 } from 'lucide-react';
 import { useAleans } from '../context/AleansContext';
 
@@ -52,7 +45,8 @@ export const navModules = [
 ];
 
 export default function AleansSidebar() {
-  const { currentUser, sidebarCollapsed, setSidebarCollapsed, approvals, logout } = useAleans();
+  const { currentUser, sidebarCollapsed, setSidebarCollapsed, approvals, logout, setSearchOpen } = useAleans();
+  const [filterQuery, setFilterQuery] = useState('');
   const navigate = useNavigate();
   const pendingApprovals = approvals.filter((a) => a.status === 'Pending').length;
 
@@ -60,6 +54,10 @@ export default function AleansSidebar() {
     logout();
     navigate('/login');
   };
+
+  const displayedModules = filterQuery.trim() === ''
+    ? navModules
+    : navModules.filter(m => m.label.toLowerCase().includes(filterQuery.toLowerCase()));
 
   return (
     <aside
@@ -95,54 +93,74 @@ export default function AleansSidebar() {
         )}
       </div>
 
-      {/* Global Search Shortcut */}
+      {/* Global Interactive Search Input */}
       {!sidebarCollapsed && (
         <div className="px-3 pt-3 pb-1">
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
-            <div className="flex items-center gap-2">
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span>Search modules...</span>
-            </div>
-            <kbd className="px-1.5 py-0.5 rounded bg-white text-[10px] font-mono text-slate-500 border border-slate-200 shadow-sm">
-              ⌘K
-            </kbd>
+          <div className="relative flex items-center px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-100 transition">
+            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <input
+              type="text"
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              placeholder="Search 16 modules..."
+              className="w-full bg-transparent pl-2 pr-1 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            />
+            {filterQuery ? (
+              <button onClick={() => setFilterQuery('')} className="text-slate-400 hover:text-slate-700 p-0.5">
+                <X className="w-3 h-3" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="px-1.5 py-0.5 rounded bg-white text-[10px] font-mono text-slate-500 border border-slate-200 shadow-sm hover:border-emerald-500 hover:text-emerald-700 transition"
+                title="Open Global Search (Ctrl+K)"
+              >
+                ⌘K
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* 24 Modules Navigation Tree */}
+      {/* 16 Modules Navigation Tree */}
       <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
-        {navModules.map(({ to, label, icon: Icon, badge }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-all group ${
-                isActive
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
-              }`
-            }
-            title={sidebarCollapsed ? label : undefined}
-          >
-            <Icon className="h-4 w-4 shrink-0 transition group-hover:scale-105" />
-            {!sidebarCollapsed && (
-              <>
-                <span className="flex-1 truncate">{label}</span>
-                {label === 'Approvals Hub' && pendingApprovals > 0 ? (
-                  <span className="flex h-4 min-w-[18px] items-center justify-center rounded-full bg-amber-100 text-amber-800 border border-amber-200 px-1 text-[9px] font-bold">
-                    {pendingApprovals}
-                  </span>
-                ) : badge ? (
-                  <span className="px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 group-hover:text-emerald-700 text-[10px] font-bold border border-slate-200">
-                    {badge}
-                  </span>
-                ) : null}
-              </>
-            )}
-          </NavLink>
-        ))}
+        {displayedModules.length === 0 ? (
+          <div className="py-6 text-center text-slate-400 text-xs">
+            <p>No module found</p>
+          </div>
+        ) : (
+          displayedModules.map(({ to, label, icon: Icon, badge }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-all group ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
+                }`
+              }
+              title={sidebarCollapsed ? label : undefined}
+            >
+              <Icon className="h-4 w-4 shrink-0 transition group-hover:scale-105" />
+              {!sidebarCollapsed && (
+                <>
+                  <span className="flex-1 truncate">{label}</span>
+                  {label === 'Approvals Hub' && pendingApprovals > 0 ? (
+                    <span className="flex h-4 min-w-[18px] items-center justify-center rounded-full bg-amber-100 text-amber-800 border border-amber-200 px-1 text-[9px] font-bold">
+                      {pendingApprovals}
+                    </span>
+                  ) : badge ? (
+                    <span className="px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 group-hover:text-emerald-700 text-[10px] font-bold border border-slate-200">
+                      {badge}
+                    </span>
+                  ) : null}
+                </>
+              )}
+            </NavLink>
+          ))
+        )}
       </nav>
 
       {/* Logged-In User Profile Card */}

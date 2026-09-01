@@ -1,7 +1,9 @@
-﻿import { Outlet, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import AleansSidebar from '../components/AleansSidebar';
 import AleansHeader from '../components/AleansHeader';
 import AleansQuickAddModal from '../components/AleansQuickAddModal';
+import GlobalSearchModal from '../components/GlobalSearchModal';
 import { useAleans } from '../context/AleansContext';
 
 const titles = {
@@ -19,25 +21,28 @@ const titles = {
   '/procurement': 'Procurement & 3-Way Matched POs',
   '/crm': 'CRM & Enterprise Sales Funnel',
   '/operations': 'Operations & Project Execution',
-  '/quality': 'Quality & Six Sigma Compliance',
   '/service': 'Customer Service & SLA Tracking',
   '/dms': 'Document Management System (DMS)',
-  '/admin': 'Admin & IT Asset Fleet',
-  '/ld': 'Learning & Development Matrix',
-  '/travel': 'Travel & Expense Reimbursements',
   '/reports': 'Executive MIS & Board Reports',
-  '/approvals': 'Universal Approvals Hub',
-  '/helpdesk': 'Internal IT Help Desk',
-  '/integrations': 'Enterprise API Integrations',
-  '/audit-log': 'Immutable Audit Log & Trail',
   '/settings': 'User Profile & Security Settings',
 };
 
 export default function AleansLayout() {
   const location = useLocation();
-  const { sidebarCollapsed } = useAleans();
+  const { sidebarCollapsed, searchOpen, setSearchOpen } = useAleans();
 
   const currentTitle = titles[location.pathname] || 'Alea ERP';
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [setSearchOpen]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 antialiased font-sans">
@@ -51,6 +56,7 @@ export default function AleansLayout() {
         </main>
       </div>
       <AleansQuickAddModal />
+      <GlobalSearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

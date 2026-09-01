@@ -110,6 +110,7 @@ export function AleansProvider({ children }) {
   const [okrs, setOkrs] = useState(() => getStorage(STORAGE_KEYS.okrs, aleanOKRs));
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const isManagerOrAdmin = currentUser?.role === 'Manager' || currentUser?.role === 'Admin' || currentUser?.systemRole === 'Manager' || currentUser?.systemRole === 'Admin';
@@ -766,6 +767,8 @@ export function AleansProvider({ children }) {
         isAuthenticated,
         isManagerOrAdmin,
         quickAddOpen,
+        searchOpen,
+        setSearchOpen,
         sidebarCollapsed,
         login,
         register,
