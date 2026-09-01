@@ -25,23 +25,24 @@ import {
 } from 'lucide-react';
 import { useAleans } from '../context/AleansContext';
 
-export const navModules = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, badge: null },
-  { to: '/employee', label: 'My Portal / Self Service', icon: User, badge: null },
-  { to: '/organization', label: 'Organization', icon: Building2, badge: null },
-  { to: '/users', label: 'Users & Roles', icon: ShieldCheck, badge: null },
-  { to: '/hr', label: 'HR & Attendance', icon: Users, badge: null },
-  { to: '/recruitment', label: 'Recruitment & ATS', icon: Briefcase, badge: null },
-  { to: '/performance', label: 'Performance & OKR', icon: Award, badge: null },
-  { to: '/finance', label: 'Finance & Accounts', icon: Landmark, badge: null },
-  { to: '/payroll', label: 'Statutory Payroll', icon: Receipt, badge: null },
-  { to: '/inventory', label: 'Inventory & Stock', icon: Boxes, badge: null },
-  { to: '/procurement', label: 'Procurement & POs', icon: ShoppingCart, badge: null },
-  { to: '/crm', label: 'CRM & Sales', icon: Target, badge: null },
-  { to: '/operations', label: 'Operations & Projects', icon: Cog, badge: null },
-  { to: '/service', label: 'Customer Service & SLA', icon: Headphones, badge: null },
-  { to: '/dms', label: 'Documents & DMS', icon: FolderArchive, badge: null },
-  { to: '/reports', label: 'MIS & Reports', icon: BarChart3, badge: null },
+// Master 16 dashboards with permitted role levels
+export const allNavModules = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, badge: null, roles: ['Admin', 'Manager', 'Employee'] },
+  { to: '/employee', label: 'My Portal / Self Service', icon: User, badge: 'Self', roles: ['Admin', 'Manager', 'Employee'] },
+  { to: '/organization', label: 'Organization', icon: Building2, badge: null, roles: ['Admin'] },
+  { to: '/users', label: 'Users & Roles', icon: ShieldCheck, badge: null, roles: ['Admin'] },
+  { to: '/hr', label: 'HR & Attendance', icon: Users, badge: null, roles: ['Admin', 'Manager', 'Employee'] },
+  { to: '/recruitment', label: 'Recruitment & ATS', icon: Briefcase, badge: null, roles: ['Admin', 'Manager'] },
+  { to: '/performance', label: 'Performance & OKR', icon: Award, badge: null, roles: ['Admin', 'Manager', 'Employee'] },
+  { to: '/finance', label: 'Finance & Accounts', icon: Landmark, badge: null, roles: ['Admin', 'Manager'] },
+  { to: '/payroll', label: 'Statutory Payroll', icon: Receipt, badge: null, roles: ['Admin'] },
+  { to: '/inventory', label: 'Inventory & Stock', icon: Boxes, badge: null, roles: ['Admin', 'Manager'] },
+  { to: '/procurement', label: 'Procurement & POs', icon: ShoppingCart, badge: null, roles: ['Admin', 'Manager'] },
+  { to: '/crm', label: 'CRM & Sales', icon: Target, badge: null, roles: ['Admin', 'Manager'] },
+  { to: '/operations', label: 'Operations & Projects', icon: Cog, badge: null, roles: ['Admin', 'Manager', 'Employee'] },
+  { to: '/service', label: 'Customer Service & SLA', icon: Headphones, badge: null, roles: ['Admin', 'Manager', 'Employee'] },
+  { to: '/dms', label: 'Documents & DMS', icon: FolderArchive, badge: null, roles: ['Admin', 'Manager', 'Employee'] },
+  { to: '/reports', label: 'MIS & Reports', icon: BarChart3, badge: null, roles: ['Admin', 'Manager'] },
 ];
 
 export default function AleansSidebar() {
@@ -55,9 +56,14 @@ export default function AleansSidebar() {
     navigate('/login');
   };
 
+  const userRole = currentUser?.role || currentUser?.systemRole || 'Employee';
+
+  // Role-Based Filtering
+  const rolePermittedModules = allNavModules.filter(m => m.roles.includes(userRole));
+
   const displayedModules = filterQuery.trim() === ''
-    ? navModules
-    : navModules.filter(m => m.label.toLowerCase().includes(filterQuery.toLowerCase()));
+    ? rolePermittedModules
+    : rolePermittedModules.filter(m => m.label.toLowerCase().includes(filterQuery.toLowerCase()));
 
   return (
     <aside
@@ -77,11 +83,17 @@ export default function AleansSidebar() {
                 <span className="text-sm font-extrabold text-slate-900 tracking-tight truncate">
                   {currentUser?.name || 'Alea ERP'}
                 </span>
-                <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[9px] border border-emerald-200">
-                  ERP
+                <span className={`px-1.5 py-0.2 rounded-md font-bold text-[9px] border ${
+                  userRole === 'Admin' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  userRole === 'Manager' ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                  'bg-slate-100 text-slate-700 border-slate-200'
+                }`}>
+                  {userRole}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium truncate">Enterprise Operating System</p>
+              <p className="text-[11px] text-slate-500 font-medium truncate">
+                {userRole === 'Admin' ? 'Executive Master Control' : userRole === 'Manager' ? 'Departmental Manager Console' : 'Employee Self-Service Workspace'}
+              </p>
             </div>
           )}
         </div>
@@ -102,7 +114,7 @@ export default function AleansSidebar() {
               type="text"
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              placeholder="Search 16 modules..."
+              placeholder={`Search ${rolePermittedModules.length} modules...`}
               className="w-full bg-transparent pl-2 pr-1 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none"
             />
             {filterQuery ? (
@@ -122,7 +134,7 @@ export default function AleansSidebar() {
         </div>
       )}
 
-      {/* 16 Modules Navigation Tree */}
+      {/* Role-Permitted Navigation Tree */}
       <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
         {displayedModules.length === 0 ? (
           <div className="py-6 text-center text-slate-400 text-xs">
@@ -172,7 +184,7 @@ export default function AleansSidebar() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-slate-900 truncate">{currentUser?.name}</p>
-              <p className="text-[10px] text-emerald-700 font-semibold truncate">{currentUser?.role}</p>
+              <p className="text-[10px] text-emerald-700 font-semibold truncate">Role: {userRole}</p>
             </div>
             <button
               onClick={handleLogout}
