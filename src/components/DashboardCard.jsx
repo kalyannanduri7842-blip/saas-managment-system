@@ -1,25 +1,32 @@
-export default function DashboardCard({ title, value, subtitle, icon: Icon, color = 'blue' }) {
+﻿export default function DashboardCard({ title, value, subtitle, icon: Icon, color = 'emerald' }) {
   const colors = {
-    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-    green: 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-    purple: 'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-    orange: 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-    red: 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-    cyan: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
+    emerald: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-emerald-500/10',
+    green: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+    teal: 'bg-teal-500/10 text-teal-400 border border-teal-500/20',
+    amber: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    orange: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    purple: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+    rose: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+    red: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+    slate: 'bg-slate-800 text-slate-300 border border-slate-700',
+    blue: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+    cyan: 'bg-teal-500/10 text-teal-400 border border-teal-500/20',
   };
 
+  const activeColor = colors[color] || colors.emerald;
+
   return (
-    <div className="card">
+    <div className="card hover:border-slate-700 transition-all shadow-lg hover:shadow-emerald-950/20">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+          <p className="text-xs font-semibold text-slate-400">{title}</p>
+          <p className="mt-1.5 text-xl sm:text-2xl font-extrabold text-white tracking-tight">{value}</p>
           {subtitle && (
-            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{subtitle}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
           )}
         </div>
         {Icon && (
-          <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colors[color]}`}>
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-sm ${activeColor}`}>
             <Icon className="h-5 w-5" />
           </div>
         )}

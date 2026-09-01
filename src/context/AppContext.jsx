@@ -1,26 +1,31 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+﻿import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { storage, initializeData, generateId } from '../services/storage';
+import { useAuth } from './AuthContext';
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
+  const { currentUser } = useAuth();
   const [applications, setApplications] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [users, setUsers] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
   const [settings, setSettings] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   useEffect(() => {
     initializeData();
     setApplications(storage.getApplications());
     setSubscriptions(storage.getSubscriptions());
-    setUsers(storage.getUsers());
+    setUsers(storage.getEmployees());
     setExpenses(storage.getExpenses());
     setNotifications(storage.getNotifications());
+    setAuditLogs(storage.getAuditLogs());
     const s = storage.getSettings();
     setSettings(s);
     if (s?.appearance?.theme === 'dark') {
@@ -43,7 +48,7 @@ export function AppProvider({ children }) {
 
   const persistUsers = useCallback((data) => {
     setUsers(data);
-    storage.setUsers(data);
+    storage.setEmployees(data);
   }, []);
 
   const persistExpenses = useCallback((data) => {
@@ -54,6 +59,11 @@ export function AppProvider({ children }) {
   const persistNotifs = useCallback((data) => {
     setNotifications(data);
     storage.setNotifications(data);
+  }, []);
+
+  const persistAudit = useCallback((data) => {
+    setAuditLogs(data);
+    storage.setAuditLogs(data);
   }, []);
 
   const persistSettings = useCallback((data) => {
@@ -71,100 +81,193 @@ export function AppProvider({ children }) {
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3500);
+    }, 4500);
   }, []);
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const logActivity = useCallback((action, target, details) => {
+    const authorName = currentUser?.name || 'Authorized Staff';
+    const authorRole = currentUser?.role || 'Team Member';
+    const newLog = {
+      id: generateId('aud'),
+      actor: authorName,
+      role: authorRole,
+      action,
+      target,
+      details,
+      timestamp: new Date().toISOString(),
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    persistAudit(updatedLogs);
+    return newLog;
+  }, [currentUser, auditLogs, persistAudit]);
+
   // Applications CRUD
   const addApplication = useCallback((app) => {
-    const newApp = { ...app, id: generateId('app') };
-    persistApps([...applications, newApp]);
+    const authorName = currentUser?.name || 'Sarah Jenkins';
+    const authorRole = currentUser?.role || 'Admin';
+    const newApp = {
+      ...app,
+      id: generateId('app'),
+      monthlyCost: Number(app.monthlyCost) || 0,
+      numberOfUsers: Number(app.numberOfUsers) || 1,
+      addedBy: authorName,
+      department: app.department || currentUser?.department || 'Engineering',
+      createdAt: new Date().toISOString(),
+    };
+
+    persistApps([newApp, ...applications]);
+
+    // Live Notification
     const notif = {
       id: generateId('notif'),
       title: 'New Application Added',
-      message: `${app.name} was added to your SaaS portfolio`,
+      message: `${authorName} (${authorRole}) added ${newApp.name} ($${newApp.monthlyCost}/mo)`,
       type: 'application',
       read: false,
       createdAt: new Date().toISOString(),
+      author: authorName,
     };
     persistNotifs([notif, ...notifications]);
-    showToast('Application added successfully');
+
+    // Live Audit Log
+    logActivity('CREATE', newApp.name, `Added SaaS application with ${newApp.numberOfUsers} seats ($${newApp.monthlyCost}/mo)`);
+
+    showToast(`"${newApp.name}" was added by ${authorName} and updated on the dashboard!`);
     return newApp;
-  }, [applications, notifications, persistApps, persistNotifs, showToast]);
+  }, [currentUser, applications, notifications, persistApps, persistNotifs, logActivity, showToast]);
 
   const updateApplication = useCallback((id, updates) => {
+    const targetApp = applications.find((a) => a.id === id);
+    const authorName = currentUser?.name || 'Staff';
     persistApps(applications.map((a) => (a.id === id ? { ...a, ...updates } : a)));
+
+    logActivity('UPDATE', targetApp?.name || 'Application', `Updated application attributes by ${authorName}`);
     showToast('Application updated successfully');
-  }, [applications, persistApps, showToast]);
+  }, [currentUser, applications, persistApps, logActivity, showToast]);
 
   const deleteApplication = useCallback((id) => {
+    const targetApp = applications.find((a) => a.id === id);
+    const authorName = currentUser?.name || 'Staff';
     persistApps(applications.filter((a) => a.id !== id));
     persistSubs(subscriptions.filter((s) => s.applicationId !== id));
-    persistUsers(users.map((u) => ({
-      ...u,
-      assignedApps: (u.assignedApps || []).filter((aid) => aid !== id),
-    })));
-    showToast('Application deleted successfully');
-  }, [applications, subscriptions, users, persistApps, persistSubs, persistUsers, showToast]);
+
+    logActivity('DELETE', targetApp?.name || 'Application', `Decommissioned application by ${authorName}`);
+    showToast('Application deleted successfully', 'info');
+  }, [currentUser, applications, subscriptions, persistApps, persistSubs, logActivity, showToast]);
 
   // Subscriptions CRUD
   const addSubscription = useCallback((sub) => {
-    const newSub = { ...sub, id: generateId('sub') };
-    persistSubs([...subscriptions, newSub]);
-    showToast('Subscription added successfully');
+    const authorName = currentUser?.name || 'Sarah Jenkins';
+    const newSub = {
+      ...sub,
+      id: generateId('sub'),
+      cost: Number(sub.cost) || 0,
+      seats: Number(sub.seats) || 1,
+      usedSeats: Number(sub.usedSeats) || 1,
+      addedBy: authorName,
+      createdAt: new Date().toISOString(),
+    };
+    persistSubs([newSub, ...subscriptions]);
+
+    const notif = {
+      id: generateId('notif'),
+      title: 'New Subscription Plan',
+      message: `${authorName} activated ${newSub.planName} plan ($${newSub.cost})`,
+      type: 'renewal',
+      read: false,
+      createdAt: new Date().toISOString(),
+      author: authorName,
+    };
+    persistNotifs([notif, ...notifications]);
+
+    logActivity('CREATE', `Subscription: ${newSub.planName}`, `Logged ${newSub.billingCycle} subscription renewal for $${newSub.cost}`);
+    showToast(`Subscription plan added by ${authorName}`);
     return newSub;
-  }, [subscriptions, persistSubs, showToast]);
+  }, [currentUser, subscriptions, notifications, persistSubs, persistNotifs, logActivity, showToast]);
 
   const updateSubscription = useCallback((id, updates) => {
     persistSubs(subscriptions.map((s) => (s.id === id ? { ...s, ...updates } : s)));
-    showToast('Subscription updated successfully');
+    showToast('Subscription updated');
   }, [subscriptions, persistSubs, showToast]);
 
   const deleteSubscription = useCallback((id) => {
     persistSubs(subscriptions.filter((s) => s.id !== id));
-    showToast('Subscription deleted successfully');
+    showToast('Subscription deleted', 'info');
   }, [subscriptions, persistSubs, showToast]);
 
   // Users CRUD
   const addUser = useCallback((user) => {
-    const newUser = { ...user, id: generateId('user'), assignedApps: user.assignedApps || [] };
-    persistUsers([...users, newUser]);
-    showToast('User added successfully');
+    const authorName = currentUser?.name || 'Staff';
+    const newUser = {
+      ...user,
+      id: generateId('emp'),
+      avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`,
+      status: user.status || 'Active',
+      joinedDate: new Date().toISOString().split('T')[0],
+      assignedApps: user.assignedApps || ['app-1'],
+    };
+    persistUsers([newUser, ...users]);
+
+    const notif = {
+      id: generateId('notif'),
+      title: 'New Employee Onboarded',
+      message: `${authorName} added ${newUser.name} to ${newUser.department}`,
+      type: 'user',
+      read: false,
+      createdAt: new Date().toISOString(),
+      author: authorName,
+    };
+    persistNotifs([notif, ...notifications]);
+
+    logActivity('ONBOARD', newUser.name, `Added new employee to ${newUser.department} (${newUser.role})`);
+    showToast(`Employee ${newUser.name} added successfully!`);
     return newUser;
-  }, [users, persistUsers, showToast]);
+  }, [currentUser, users, notifications, persistUsers, persistNotifs, logActivity, showToast]);
 
   const updateUser = useCallback((id, updates) => {
     persistUsers(users.map((u) => (u.id === id ? { ...u, ...updates } : u)));
-    showToast('User updated successfully');
+    showToast('Employee profile updated');
   }, [users, persistUsers, showToast]);
 
   const deleteUser = useCallback((id) => {
     persistUsers(users.filter((u) => u.id !== id));
-    showToast('User deleted successfully');
+    showToast('Employee removed', 'info');
   }, [users, persistUsers, showToast]);
 
-  const assignAppsToUser = useCallback((userId, appIds) => {
-    persistUsers(users.map((u) => (u.id === userId ? { ...u, assignedApps: appIds } : u)));
-    showToast('Applications assigned successfully');
-  }, [users, persistUsers, showToast]);
-
-  // Expenses
+  // Expenses CRUD
   const addExpense = useCallback((exp) => {
-    const newExp = { ...exp, id: generateId('exp') };
-    persistExpenses([...expenses, newExp]);
-    showToast('Expense added successfully');
+    const authorName = currentUser?.name || 'Alex Mercer';
+    const newExp = {
+      ...exp,
+      id: generateId('exp'),
+      amount: Number(exp.amount) || 0,
+      loggedBy: authorName,
+      date: exp.date || new Date().toISOString().split('T')[0],
+      paymentStatus: exp.paymentStatus || 'Paid',
+    };
+    persistExpenses([newExp, ...expenses]);
+
+    const notif = {
+      id: generateId('notif'),
+      title: 'Expense Invoice Logged',
+      message: `${authorName} logged invoice for ${newExp.title || newExp.category} ($${newExp.amount.toFixed(2)})`,
+      type: 'payment',
+      read: false,
+      createdAt: new Date().toISOString(),
+      author: authorName,
+    };
+    persistNotifs([notif, ...notifications]);
+
+    logActivity('EXPENSE', newExp.title || 'Invoice', `Logged ${newExp.paymentStatus} expense payment of $${newExp.amount}`);
+    showToast(`Invoice of $${newExp.amount.toFixed(2)} recorded on Dashboard`);
     return newExp;
-  }, [expenses, persistExpenses, showToast]);
+  }, [currentUser, expenses, notifications, persistExpenses, persistNotifs, logActivity, showToast]);
 
-  const deleteExpense = useCallback((id) => {
-    persistExpenses(expenses.filter((e) => e.id !== id));
-    showToast('Expense deleted successfully');
-  }, [expenses, persistExpenses, showToast]);
-
-  // Notifications
+  // Notification helpers
   const markNotificationRead = useCallback((id) => {
     persistNotifs(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, [notifications, persistNotifs]);
@@ -174,56 +277,64 @@ export function AppProvider({ children }) {
     showToast('All notifications marked as read');
   }, [notifications, persistNotifs, showToast]);
 
-  const deleteNotification = useCallback((id) => {
-    persistNotifs(notifications.filter((n) => n.id !== id));
-  }, [notifications, persistNotifs]);
+  const clearNotifications = useCallback(() => {
+    persistNotifs([]);
+    showToast('Notifications cleared');
+  }, [persistNotifs, showToast]);
 
   const toggleTheme = useCallback(() => {
-    if (!settings) return;
-    const newTheme = settings.appearance.theme === 'dark' ? 'light' : 'dark';
+    const currentTheme = settings?.appearance?.theme || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     persistSettings({
       ...settings,
-      appearance: { ...settings.appearance, theme: newTheme },
+      appearance: { ...settings?.appearance, theme: newTheme },
     });
   }, [settings, persistSettings]);
 
-  const value = {
-    applications,
-    subscriptions,
-    users,
-    expenses,
-    notifications,
-    settings,
-    toasts,
-    loading,
-    sidebarOpen,
-    setSidebarOpen,
-    addApplication,
-    updateApplication,
-    deleteApplication,
-    addSubscription,
-    updateSubscription,
-    deleteSubscription,
-    addUser,
-    updateUser,
-    deleteUser,
-    assignAppsToUser,
-    addExpense,
-    deleteExpense,
-    markNotificationRead,
-    markAllNotificationsRead,
-    deleteNotification,
-    persistSettings,
-    toggleTheme,
-    showToast,
-    removeToast,
-  };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider
+      value={{
+        applications,
+        subscriptions,
+        users,
+        expenses,
+        notifications,
+        auditLogs,
+        settings,
+        toasts,
+        loading,
+        sidebarOpen,
+        quickAddOpen,
+        setSidebarOpen,
+        setQuickAddOpen,
+        showToast,
+        removeToast,
+        addApplication,
+        updateApplication,
+        deleteApplication,
+        addSubscription,
+        updateSubscription,
+        deleteSubscription,
+        addUser,
+        updateUser,
+        deleteUser,
+        addExpense,
+        markNotificationRead,
+        markAllNotificationsRead,
+        clearNotifications,
+        updateSettings: persistSettings,
+        toggleTheme,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
 }
 
 export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp must be used within AppProvider');
-  return ctx;
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
 }

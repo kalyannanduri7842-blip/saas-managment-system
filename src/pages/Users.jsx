@@ -1,34 +1,34 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Eye, Link2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, LogIn, UserCheck, Shield, Sparkles, Building, Mail } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import SearchBar from '../components/SearchBar';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EmptyState from '../components/EmptyState';
-import { ROLES, USER_STATUSES } from '../data/sampleData';
+import { ROLES, DEPARTMENTS } from '../data/sampleData';
 
 const emptyForm = {
   name: '',
   email: '',
-  department: '',
+  department: 'Engineering',
   role: 'Employee',
   status: 'Active',
-  assignedApps: [],
+  assignedApps: ['app-1', 'app-2'],
 };
 
 export default function Users() {
-  const { users, applications, addUser, updateUser, deleteUser, assignAppsToUser } = useApp();
+  const { users, applications, addUser, updateUser, deleteUser, showToast } = useApp();
+  const { currentUser, loginAs } = useAuth();
   const navigate = useNavigate();
+
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [assignOpen, setAssignOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [assignUser, setAssignUser] = useState(null);
-  const [selectedApps, setSelectedApps] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [deleteId, setDeleteId] = useState(null);
@@ -38,10 +38,10 @@ export default function Users() {
       const q = search.toLowerCase();
       const matchSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
       const matchRole = !roleFilter || u.role === roleFilter;
-      const matchStatus = !statusFilter || u.status === statusFilter;
-      return matchSearch && matchRole && matchStatus;
+      const matchDept = !deptFilter || u.department === deptFilter;
+      return matchSearch && matchRole && matchDept;
     });
-  }, [users, search, roleFilter, statusFilter]);
+  }, [users, search, roleFilter, deptFilter]);
 
   const openAdd = () => {
     setEditing(null);
@@ -57,25 +57,21 @@ export default function Users() {
     setModalOpen(true);
   };
 
-  const openAssign = (user) => {
-    setAssignUser(user);
-    setSelectedApps(user.assignedApps || []);
-    setAssignOpen(true);
-  };
-
-  const validate = () => {
-    const e = {};
-    if (!form.name.trim()) e.name = 'Name is required';
-    if (!form.email.trim()) e.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Valid email required';
-    if (!form.role) e.role = 'Role is required';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  const handleSwitchAccount = (user) => {
+    loginAs(user.id);
+    showToast(`Switched active employee to ${user.name} (${user.role})`);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    const errs = {};
+    if (!form.name.trim()) errs.name = 'Name is required';
+    if (!form.email.trim()) errs.email = 'Email is required';
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+
     if (editing) {
       updateUser(editing.id, form);
     } else {
@@ -84,173 +80,230 @@ export default function Users() {
     setModalOpen(false);
   };
 
-  const handleAssign = () => {
-    if (assignUser) {
-      assignAppsToUser(assignUser.id, selectedApps);
-      setAssignOpen(false);
-    }
-  };
-
-  const toggleApp = (appId) => {
-    setSelectedApps((prev) =>
-      prev.includes(appId) ? prev.filter((id) => id !== appId) : [...prev, appId]
-    );
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <div className="flex flex-col sm:flex-row gap-3 flex-1">
-          <div className="sm:w-64">
-            <SearchBar value={search} onChange={setSearch} placeholder="Search by name or email..." />
-          </div>
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="input sm:w-36">
-            <option value="">All Roles</option>
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input sm:w-36">
-            <option value="">All Statuses</option>
-            {USER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+    <div className="space-y-6">
+      {/* Header action bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Employee & Team Directory</h2>
+          <p className="text-xs text-gray-500 dark:text-slate-400">
+            Manage company staff, assigned SaaS licenses, and switch employee workspaces.
+          </p>
         </div>
-        <button onClick={openAdd} className="btn-primary shrink-0">
-          <Plus className="h-4 w-4" /> Add User
+        <button
+          onClick={openAdd}
+          className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Onboard Employee</span>
         </button>
       </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState
-          title="No users found"
-          description="Add team members to manage application access"
-          action={!search && !roleFilter && !statusFilter && (
-            <button onClick={openAdd} className="btn-primary"><Plus className="h-4 w-4" /> Add User</button>
-          )}
-        />
-      ) : (
-        <div className="card p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-left">
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">Email</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 hidden lg:table-cell">Department</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">Apps</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {filtered.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900 dark:text-white">{u.name}</div>
-                      <div className="text-xs text-gray-400 md:hidden">{u.email}</div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden md:table-cell">{u.email}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden lg:table-cell">{u.department}</td>
-                    <td className="px-4 py-3"><Badge status={u.role} /></td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
-                      {(u.assignedApps || []).length}
-                    </td>
-                    <td className="px-4 py-3"><Badge status={u.status} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => navigate(`/users/${u.id}`)} className="btn-ghost p-1.5" title="View">
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => openAssign(u)} className="btn-ghost p-1.5" title="Assign Apps">
-                          <Link2 className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => openEdit(u)} className="btn-ghost p-1.5" title="Edit">
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => setDeleteId(u.id)} className="btn-ghost p-1.5 text-red-500" title="Delete">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="flex-1">
+          <SearchBar value={search} onChange={setSearch} placeholder="Search employees by name or email..." />
         </div>
-      )}
+        <select
+          value={deptFilter}
+          onChange={(e) => setDeptFilter(e.target.value)}
+          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500"
+        >
+          <option value="">All Departments</option>
+          {DEPARTMENTS.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500"
+        >
+          <option value="">All Roles</option>
+          {ROLES.map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+      </div>
 
-      {/* Add/Edit Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit User' : 'Add User'}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Name *</label>
-            <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+      {/* Employee List Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filtered.length === 0 ? (
+          <div className="col-span-full">
+            <EmptyState title="No employees found" description="Try adjusting your filters or onboard a new staff member." />
           </div>
+        ) : (
+          filtered.map((user) => {
+            const isSelf = currentUser?.id === user.id;
+            return (
+              <div
+                key={user.id}
+                className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all shadow-md flex flex-col justify-between ${
+                  isSelf
+                    ? 'border-emerald-500/60 ring-2 ring-emerald-500/20 shadow-emerald-500/10'
+                    : 'border-gray-200 dark:border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                        alt={user.name}
+                        className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-700 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name}</h3>
+                          {isSelf && (
+                            <span className="px-1.5 py-0.2 rounded-md bg-emerald-500/20 text-emerald-400 font-bold text-[9px]">
+                              YOU
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{user.title || user.role}</p>
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold truncate mt-0.5">
+                          {user.department}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-700/50">
+                      {user.role}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-gray-500 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800/80 pt-3 my-3">
+                    <div className="flex items-center gap-2 truncate">
+                      <Mail className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                      <span className="truncate">{user.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Building className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                      <span>{user.assignedApps?.length || 3} Assigned SaaS Tools</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Actions */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-slate-800/80">
+                  <button
+                    onClick={() => handleSwitchAccount(user)}
+                    className={`flex-1 py-1.5 px-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                      isSelf
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-slate-800 hover:bg-emerald-950/60 text-slate-300 hover:text-emerald-400 border border-slate-700 hover:border-emerald-500/40'
+                    }`}
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>{isSelf ? 'Active Session' : 'Login As'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => openEdit(user)}
+                    className="p-2 text-gray-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                    title="Edit Employee"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => setDeleteId(user.id)}
+                    className="p-2 text-gray-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition"
+                    title="Remove Employee"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add/Edit Employee Modal */}
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Employee' : 'Onboard Employee'}>
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="label">Email *</label>
-            <input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+            <label className="block font-semibold text-slate-300 mb-1">Full Name</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="e.g. Thomas Wayne"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+            />
+            {errors.name && <p className="text-rose-400 text-[10px] mt-1">{errors.name}</p>}
           </div>
+
           <div>
-            <label className="label">Department</label>
-            <input className="input" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+            <label className="block font-semibold text-slate-300 mb-1">Corporate Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="thomas@enterprise.io"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+            />
+            {errors.email && <p className="text-rose-400 text-[10px] mt-1">{errors.email}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Role *</label>
-              <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              <label className="block font-semibold text-slate-300 mb-1">Department</label>
+              <select
+                value={form.department}
+                onChange={(e) => setForm({ ...form, department: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-emerald-500"
+              >
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
               </select>
             </div>
+
             <div>
-              <label className="label">Status</label>
-              <select className="input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                {USER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              <label className="block font-semibold text-slate-300 mb-1">Access Role</label>
+              <select
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-emerald-500"
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
               </select>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" className="btn-primary">{editing ? 'Update' : 'Add'} User</button>
+
+          <div className="pt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/25"
+            >
+              Save Employee
+            </button>
           </div>
         </form>
       </Modal>
 
-      {/* Assign Apps Modal */}
-      <Modal open={assignOpen} onClose={() => setAssignOpen(false)} title={`Assign Apps – ${assignUser?.name || ''}`}>
-        <div className="space-y-3 max-h-80 overflow-y-auto">
-          {applications.map((app) => (
-            <label
-              key={app.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30"
-            >
-              <input
-                type="checkbox"
-                checked={selectedApps.includes(app.id)}
-                onChange={() => toggleApp(app.id)}
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{app.name}</p>
-                <p className="text-xs text-gray-400">{app.category}</p>
-              </div>
-              <Badge status={app.status} />
-            </label>
-          ))}
-        </div>
-        <div className="flex justify-end gap-3 pt-4">
-          <button onClick={() => setAssignOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleAssign} className="btn-primary">Save Assignments</button>
-        </div>
-      </Modal>
-
+      {/* Confirm Delete */}
       <ConfirmDialog
-        open={!!deleteId}
+        isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
-        onConfirm={() => deleteUser(deleteId)}
-        title="Delete User"
-        message="Are you sure you want to delete this user?"
+        onConfirm={() => {
+          deleteUser(deleteId);
+          setDeleteId(null);
+        }}
+        title="Remove Employee"
+        message="Are you sure you want to remove this employee from the directory? Their SaaS tool assignments will be unlinked."
       />
     </div>
   );
