@@ -55,7 +55,11 @@ const STORAGE_KEYS = {
 function getStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
+    if (!raw || typeof raw !== 'string') return fallback;
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('<') || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html>')) {
+      return fallback;
+    }
     return JSON.parse(raw);
   } catch {
     return fallback;
